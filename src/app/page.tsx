@@ -46,16 +46,16 @@ export default function HomePage() {
           transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
         >
           <h1
-            className="text-6xl md:text-8xl font-bold tracking-tight"
+            className="text-5xl md:text-7xl font-bold tracking-tight flex flex-wrap gap-x-3 gap-y-1 justify-center items-center"
             style={{ fontFamily: "var(--font-display)" }}
           >
-            <span className="text-accent-pink">Q</span>
-            <span className="text-accent-yellow">U</span>
-            <span className="text-accent-lime">I</span>
-            <span className="text-accent-coral">Z</span>
+            <span className="text-accent-pink">Song</span>
+            <span className="text-accent-yellow">Hành</span>
+            <span className="text-accent-lime">Độc</span>
+            <span className="text-accent-coral">Lập</span>
           </h1>
           <p
-            className="text-text-soft-cream text-lg md:text-xl mt-2"
+            className="text-text-soft-cream text-lg md:text-xl mt-4"
             style={{ fontFamily: "var(--font-body)" }}
           >
             HCM202 — Tư tưởng Hồ Chí Minh
@@ -208,7 +208,7 @@ export default function HomePage() {
           transition={{ delay: 0.5 }}
         >
           <p className="text-text-soft-cream text-sm">
-            17 câu hỏi • 4 dạng: Trắc nghiệm, Chọn nhiều, Sắp xếp, Đoán giá trị
+            30 câu hỏi • 4 dạng: Trắc nghiệm, Chọn nhiều, Sắp xếp, Đoán giá trị
           </p>
           <p className="text-muted-sage text-xs mt-2">
             Same-browser multiplayer • Mở nhiều tab để chơi cùng

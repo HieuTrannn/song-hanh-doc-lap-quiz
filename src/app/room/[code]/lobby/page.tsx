@@ -7,6 +7,7 @@ import { AppShell } from "@/components/shell/AppShell";
 import { TopStrip } from "@/components/shell/TopStrip";
 import { useGameStore } from "@/store/game-store";
 import { hcm202Quiz } from "@/data/quizzes/hcm202";
+import { QRCodeSVG } from "qrcode.react";
 
 // Generate avatar color from seed
 function getAvatarColor(seed: string): string {
@@ -32,9 +33,11 @@ export default function LobbyPage() {
   } = useGameStore();
 
   const [mounted, setMounted] = useState(false);
+  const [joinUrl, setJoinUrl] = useState("");
 
   useEffect(() => {
     setMounted(true);
+    setJoinUrl(`${window.location.origin}/join?code=${roomCode}`);
     // If we don't have a snapshot, try to load from adapter
     if (!roomSnapshot || roomSnapshot.roomCode !== roomCode) {
       const playerId = sessionStorage.getItem("quiz_clone.currentPlayerId");
@@ -93,20 +96,24 @@ export default function LobbyPage() {
           <div className="text-center mb-6">
             <p className="text-text-soft-cream text-sm mb-1">Join at:</p>
             <h2
-              className="text-3xl font-bold text-text-cream mb-1"
+              className="text-2xl font-bold text-text-cream mb-1 flex items-center justify-center gap-1.5"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              <span className="text-accent-pink">Q</span>
-              <span className="text-accent-yellow">U</span>
-              <span className="text-accent-lime">I</span>
-              <span className="text-accent-coral">Z</span>
-              <span>.party</span>
+              <span className="text-accent-pink">Song</span>
+              <span className="text-accent-yellow">Hành</span>
+              <span className="text-accent-lime">Độc</span>
+              <span className="text-accent-coral">Lập</span>
             </h2>
-            <div className="flex items-center justify-center gap-4 mt-3">
-              <div>
-                <p className="text-text-soft-cream text-xs">PIN code:</p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mt-4">
+              {joinUrl && (
+                <div className="p-2 bg-white rounded-xl shadow-lg" style={{ border: "3px solid var(--color-ink)", boxShadow: "var(--shadow-chunky)" }}>
+                  <QRCodeSVG value={joinUrl} size={110} bgColor="#ffffff" fgColor="#111414" />
+                </div>
+              )}
+              <div className="flex flex-col items-center sm:items-start">
+                <p className="text-text-soft-cream text-sm mb-1">...hoặc nhập PIN:</p>
                 <p
-                  className="text-4xl font-bold text-accent-lime tracking-wider"
+                  className="text-5xl md:text-6xl font-bold text-accent-lime tracking-wider"
                   style={{ fontFamily: "var(--font-display)" }}
                 >
                   {roomCode.slice(0, 3)} {roomCode.slice(3)}

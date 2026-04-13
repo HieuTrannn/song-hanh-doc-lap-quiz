@@ -45,16 +45,15 @@ function JoinForm() {
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
         {/* Logo */}
         <motion.h1
-          className="text-4xl font-bold mb-8"
+          className="text-3xl md:text-5xl font-bold mb-8 flex flex-wrap gap-x-2 gap-y-1 justify-center items-center"
           style={{ fontFamily: "var(--font-display)" }}
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <span className="text-accent-pink">Q</span>
-          <span className="text-accent-yellow">U</span>
-          <span className="text-accent-lime">I</span>
-          <span className="text-accent-coral">Z</span>
-          <span className="text-text-cream">.party</span>
+          <span className="text-accent-pink">Song</span>
+          <span className="text-accent-yellow">Hành</span>
+          <span className="text-accent-lime">Độc</span>
+          <span className="text-accent-coral">Lập</span>
         </motion.h1>
 
         <motion.div

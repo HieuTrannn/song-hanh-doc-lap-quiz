@@ -28,14 +28,13 @@ export function TopStrip({
       {/* Left section */}
       <div className="flex items-center gap-4">
         <span
-          className="text-xl font-bold tracking-tight"
+          className="text-xl font-bold tracking-tight flex items-center gap-1.5"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          <span className="text-accent-pink">Q</span>
-          <span className="text-accent-yellow">U</span>
-          <span className="text-accent-lime">I</span>
-          <span className="text-accent-coral">Z</span>
-          <span className="text-text-cream">.com</span>
+          <span className="text-accent-pink">Song</span>
+          <span className="text-accent-yellow">Hành</span>
+          <span className="text-accent-lime">Độc</span>
+          <span className="text-accent-coral">Lập</span>
         </span>
 
         {roomCode && (
