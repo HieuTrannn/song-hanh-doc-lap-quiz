@@ -117,7 +117,7 @@ export default function LobbyPage() {
                   className="text-5xl md:text-6xl font-bold text-accent-lime tracking-wider"
                   style={{ fontFamily: "var(--font-display)" }}
                 >
-                  {roomCode.slice(0, 3)} {roomCode.slice(3)}
+                  {roomCode}
                 </p>
               </div>
             </div>

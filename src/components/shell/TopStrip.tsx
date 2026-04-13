@@ -80,7 +80,7 @@ export function TopStrip({
         {onSkip && (
           <button
             onClick={onSkip}
-            className="text-text-cream hover:text-white transition-colors p-1"
+            className="text-text-cream hover:text-white transition-colors p-1 cursor-pointer"
             title="Skip"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">

@@ -135,7 +135,7 @@ export default function PlayPage() {
 
   const handleSkip = () => {
     if (isHost) {
-      useGameStore.getState().showResult();
+      useGameStore.getState().nextQuestion();
     }
   };
 
@@ -186,9 +186,9 @@ export default function PlayPage() {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="flex flex-col lg:flex-row gap-6 items-center">
+              <div className={`flex flex-col lg:flex-row gap-6 items-center ${question.imageUrl ? "" : "justify-center"}`}>
                 {/* Left panel - Question */}
-                <div className="w-full lg:w-5/12">
+                <div className={question.imageUrl ? "w-full lg:w-5/12" : "w-full max-w-2xl"}>
                   <QuestionPanel
                     question={question}
                     questionNumber={questionIndex + 1}
@@ -204,51 +204,30 @@ export default function PlayPage() {
                   />
                 </div>
 
-                {/* Right panel - Image / Placeholder */}
-                <div className="w-full lg:w-7/12 flex items-center justify-center">
-                  <motion.div
-                    className="w-full rounded-3xl flex items-center justify-center overflow-hidden"
-                    style={{
-                      backgroundColor: "rgba(0,0,0,0.15)",
-                      border: "3px solid var(--color-ink)",
-                      boxShadow: "var(--shadow-chunky)",
-                      maxHeight: "50vh",
-                    }}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.15, duration: 0.3 }}
-                  >
-                    {question.imageUrl ? (
+                {/* Right panel - Image (only when available) */}
+                {question.imageUrl && (
+                  <div className="w-full lg:w-7/12 flex items-center justify-center">
+                    <motion.div
+                      className="w-full rounded-3xl flex items-center justify-center overflow-hidden"
+                      style={{
+                        backgroundColor: "rgba(0,0,0,0.15)",
+                        border: "3px solid var(--color-ink)",
+                        boxShadow: "var(--shadow-chunky)",
+                        maxHeight: "50vh",
+                      }}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.15, duration: 0.3 }}
+                    >
                       <img
                         src={question.imageUrl}
                         alt={question.prompt}
                         className="w-full h-full object-contain"
                         style={{ maxHeight: "50vh" }}
                       />
-                    ) : (
-                      <div className="text-center p-8 aspect-video w-full flex flex-col items-center justify-center">
-                        <span className="text-6xl mb-4 block">
-                          {question.type === "buttons" && "🎯"}
-                          {question.type === "checkboxes" && "☑️"}
-                          {question.type === "reorder" && "🔢"}
-                          {question.type === "range" && "📏"}
-                        </span>
-                        <p
-                          className="text-text-soft-cream/50 text-sm"
-                          style={{ fontFamily: "var(--font-display)" }}
-                        >
-                          Câu {questionIndex + 1} / {totalQuestions}
-                        </p>
-                        <p className="text-text-soft-cream/30 text-xs mt-1">
-                          {question.type === "buttons" && "Chọn 1 đáp án đúng"}
-                          {question.type === "checkboxes" && "Chọn tất cả đáp án đúng"}
-                          {question.type === "reorder" && "Kéo thả sắp xếp đúng thứ tự"}
-                          {question.type === "range" && "Đoán giá trị chính xác"}
-                        </p>
-                      </div>
-                    )}
-                  </motion.div>
-                </div>
+                    </motion.div>
+                  </div>
+                )}
               </div>
 
               {/* Player strip - show who answered */}
