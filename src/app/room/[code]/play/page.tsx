@@ -49,8 +49,8 @@ export default function PlayPage() {
 
     if (!roomSnapshot || roomSnapshot.roomCode !== roomCode) {
       subscribeToRoom(roomCode);
-      import("@/lib/adapters/local-room-adapter").then(({ getLocalRoomAdapter }) => {
-        const adapter = getLocalRoomAdapter();
+      import("@/lib/adapters/server-room-adapter").then(({ getServerRoomAdapter }) => {
+        const adapter = getServerRoomAdapter();
         adapter.getRoom(roomCode).then((snap) => {
           if (snap) {
             useGameStore.setState({ roomSnapshot: snap });

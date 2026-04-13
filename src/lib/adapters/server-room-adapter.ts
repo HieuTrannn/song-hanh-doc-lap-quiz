@@ -7,14 +7,13 @@
  */
 
 import type {
-  RoomAdapter,
   RoomSnapshot,
   CreateRoomInput,
   JoinPlayerInput,
   AnswerSubmission,
 } from "@/lib/types";
 
-export class ServerRoomAdapter implements RoomAdapter {
+export class ServerRoomAdapter {
   private pollIntervals: Map<string, ReturnType<typeof setInterval>> = new Map();
   private listeners: Map<string, Set<(snapshot: RoomSnapshot) => void>> = new Map();
   private lastUpdatedAt: Map<string, number> = new Map();

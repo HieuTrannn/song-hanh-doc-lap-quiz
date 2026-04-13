@@ -48,8 +48,8 @@ export default function LobbyPage() {
       subscribeToRoom(roomCode);
 
       // Try loading room
-      import("@/lib/adapters/local-room-adapter").then(({ getLocalRoomAdapter }) => {
-        const adapter = getLocalRoomAdapter();
+      import("@/lib/adapters/server-room-adapter").then(({ getServerRoomAdapter }) => {
+        const adapter = getServerRoomAdapter();
         adapter.getRoom(roomCode).then((snap) => {
           if (snap) {
             useGameStore.setState({ roomSnapshot: snap, phase: "lobby" });
