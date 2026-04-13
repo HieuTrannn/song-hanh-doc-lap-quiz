@@ -108,7 +108,7 @@ export function QuestionPanel({
   };
 
   return (
-    <div className="flex flex-col gap-4 w-full max-w-md">
+    <div className="flex flex-col gap-2 w-full max-w-md">
       {/* Question type badge */}
       <div className="flex items-center gap-2">
         <span
@@ -128,7 +128,7 @@ export function QuestionPanel({
 
       {/* Question text */}
       <motion.h2
-        className="text-xl md:text-2xl font-bold leading-snug text-outlined"
+        className="text-lg md:text-xl font-bold leading-snug text-outlined"
         style={{
           fontFamily: "var(--font-display)",
           color: "var(--color-text-cream)",
@@ -140,13 +140,12 @@ export function QuestionPanel({
         {question.prompt}
       </motion.h2>
 
-      {/* Answer area */}
-      <div className="mt-2">
+      <div className="mt-1">
         {renderAnswerComponent()}
       </div>
 
       {/* Timer */}
-      <div className="mt-2">
+      <div className="mt-1">
         <TimerBar
           timeLeftMs={timeLeftMs}
           totalTimeMs={totalTimeMs}
@@ -158,7 +157,7 @@ export function QuestionPanel({
       <AnimatePresence>
         {showCorrect && lastIsCorrect !== undefined && (
           <motion.div
-            className="text-center py-2"
+            className="text-center py-1"
             initial={{ opacity: 0, y: 20, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20 }}
@@ -167,19 +166,19 @@ export function QuestionPanel({
             {lastIsCorrect ? (
               <div>
                 <span
-                  className="text-3xl font-bold text-accent-mint"
+                  className="text-2xl font-bold text-accent-mint"
                   style={{ fontFamily: "var(--font-display)" }}
                 >
                   ✓ Correct!
                 </span>
-                <p className="text-accent-lime text-lg font-bold mt-1">
+                <p className="text-accent-lime text-sm font-bold mt-0.5">
                   +{lastScore} points
                 </p>
               </div>
             ) : (
               <div>
                 <span
-                  className="text-3xl font-bold text-accent-pink"
+                  className="text-2xl font-bold text-accent-pink"
                   style={{ fontFamily: "var(--font-display)" }}
                 >
                   ✗ Wrong!
@@ -196,7 +195,7 @@ export function QuestionPanel({
       {/* Explanation */}
       {showCorrect && question.explanation && (
         <motion.div
-          className="mt-2 p-4 rounded-2xl"
+          className="mt-1 p-3 rounded-2xl"
           style={{
             backgroundColor: "rgba(255,255,255,0.08)",
             border: "2px solid rgba(255,255,255,0.1)",

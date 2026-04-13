@@ -31,7 +31,7 @@ export function AnswerButtons({
   };
 
   return (
-    <div className="flex flex-col gap-3 w-full">
+    <div className="flex flex-col gap-2 w-full">
       {options.map((option, index) => {
         const state = getButtonState(index);
         const color = ANSWER_COLORS[index % ANSWER_COLORS.length];
@@ -44,7 +44,7 @@ export function AnswerButtons({
             key={index}
             onClick={() => !disabled && onSelect(index)}
             disabled={disabled}
-            className="relative w-full text-left px-6 py-4 rounded-full font-bold text-base transition-all"
+            className="relative w-full text-left px-5 py-2.5 rounded-full font-bold text-sm transition-all"
             style={{
               fontFamily: "var(--font-display)",
               backgroundColor:
