@@ -171,12 +171,19 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
     if (snapshot.status === "question") {
       const question = get().getCurrentQuestion();
-      if (question && phase !== "question_active" && phase !== "question_locked" && phase !== "result_reveal") {
+      const currentQ = get().currentQuestion;
+      // Detect if this is a NEW question (different from what we're showing)
+      const isNewQuestion = question && (!currentQ || currentQ.id !== question.id);
+      
+      if (question && (isNewQuestion || (phase !== "question_active" && phase !== "question_locked"))) {
+        get().stopTimer();
         set({
           currentQuestion: question,
           phase: "question_active",
           selectedAnswer: null,
           answerSubmitted: false,
+          lastScore: 0,
+          lastIsCorrect: false,
         });
         // Start timer for all players based on server timestamps
         if (snapshot.questionState) {

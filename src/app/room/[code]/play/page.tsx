@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AppShell } from "@/components/shell/AppShell";
 import { TopStrip } from "@/components/shell/TopStrip";
 import { QuestionPanel } from "@/components/quiz/QuestionPanel";
+import { PlayerStrip } from "@/components/quiz/PlayerStrip";
 import { LeaderboardView } from "@/components/leaderboard/LeaderboardView";
 import { useGameStore } from "@/store/game-store";
 import { hcm202Quiz } from "@/data/quizzes/hcm202";
@@ -96,6 +97,30 @@ export default function PlayPage() {
     }
   }, [phase, roomSnapshot?.status, roomCode, router]);
 
+  // Auto-skip to result when ALL players have answered
+  useEffect(() => {
+    const hostCheck = roomSnapshot?.hostPlayerId === currentPlayerId;
+    if (
+      (phase === "question_active" || phase === "question_locked") &&
+      hostCheck &&
+      roomSnapshot?.questionState &&
+      roomSnapshot.players.length > 0 &&
+      roomSnapshot.questionState.lockedPlayers.length >= roomSnapshot.players.length
+    ) {
+      // Small delay so the last player sees their selection animation
+      const timeout = setTimeout(() => {
+        useGameStore.getState().showResult();
+      }, 800);
+      return () => clearTimeout(timeout);
+    }
+  }, [
+    phase,
+    roomSnapshot?.hostPlayerId,
+    currentPlayerId,
+    roomSnapshot?.questionState?.lockedPlayers.length,
+    roomSnapshot?.players.length,
+  ]);
+
   if (!mounted) return null;
 
   const questionIndex = roomSnapshot?.currentQuestionIndex ?? 0;
@@ -126,7 +151,7 @@ export default function PlayPage() {
         onFullscreen={() => document.documentElement.requestFullscreen?.()}
       />
 
-      <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8">
+      <div className="flex-1 flex flex-col items-center justify-start p-4 md:p-6 overflow-y-auto">
         <AnimatePresence mode="wait">
           {/* Countdown */}
           {phase === "countdown" && (
@@ -155,72 +180,85 @@ export default function PlayPage() {
           {(phase === "question_active" || phase === "question_locked" || phase === "result_reveal") && question && (
             <motion.div
               key={`question-${question.id}`}
-              className="w-full max-w-5xl flex flex-col lg:flex-row gap-6 items-start"
+              className="w-full max-w-5xl flex flex-col gap-6"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
             >
-              {/* Left panel - Question */}
-              <div className="w-full lg:w-5/12">
-                <QuestionPanel
-                  question={question}
-                  questionNumber={questionIndex + 1}
-                  totalQuestions={totalQuestions}
-                  timeLeftMs={timeLeftMs}
-                  totalTimeMs={totalTimeMs}
-                  onAnswer={handleAnswer}
-                  disabled={answerSubmitted || phase === "result_reveal"}
-                  showCorrect={phase === "result_reveal"}
-                  selectedAnswer={selectedAnswer}
-                  lastScore={lastScore}
-                  lastIsCorrect={lastIsCorrect}
-                />
+              <div className="flex flex-col lg:flex-row gap-6 items-center">
+                {/* Left panel - Question */}
+                <div className="w-full lg:w-5/12">
+                  <QuestionPanel
+                    question={question}
+                    questionNumber={questionIndex + 1}
+                    totalQuestions={totalQuestions}
+                    timeLeftMs={timeLeftMs}
+                    totalTimeMs={totalTimeMs}
+                    onAnswer={handleAnswer}
+                    disabled={answerSubmitted || phase === "result_reveal"}
+                    showCorrect={phase === "result_reveal"}
+                    selectedAnswer={selectedAnswer}
+                    lastScore={lastScore}
+                    lastIsCorrect={lastIsCorrect}
+                  />
+                </div>
+
+                {/* Right panel - Image / Placeholder */}
+                <div className="w-full lg:w-7/12 flex items-center justify-center">
+                  <motion.div
+                    className="w-full rounded-3xl flex items-center justify-center overflow-hidden"
+                    style={{
+                      backgroundColor: "rgba(0,0,0,0.15)",
+                      border: "3px solid var(--color-ink)",
+                      boxShadow: "var(--shadow-chunky)",
+                      maxHeight: "50vh",
+                    }}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.15, duration: 0.3 }}
+                  >
+                    {question.imageUrl ? (
+                      <img
+                        src={question.imageUrl}
+                        alt={question.prompt}
+                        className="w-full h-full object-contain"
+                        style={{ maxHeight: "50vh" }}
+                      />
+                    ) : (
+                      <div className="text-center p-8 aspect-video w-full flex flex-col items-center justify-center">
+                        <span className="text-6xl mb-4 block">
+                          {question.type === "buttons" && "🎯"}
+                          {question.type === "checkboxes" && "☑️"}
+                          {question.type === "reorder" && "🔢"}
+                          {question.type === "range" && "📏"}
+                        </span>
+                        <p
+                          className="text-text-soft-cream/50 text-sm"
+                          style={{ fontFamily: "var(--font-display)" }}
+                        >
+                          Câu {questionIndex + 1} / {totalQuestions}
+                        </p>
+                        <p className="text-text-soft-cream/30 text-xs mt-1">
+                          {question.type === "buttons" && "Chọn 1 đáp án đúng"}
+                          {question.type === "checkboxes" && "Chọn tất cả đáp án đúng"}
+                          {question.type === "reorder" && "Kéo thả sắp xếp đúng thứ tự"}
+                          {question.type === "range" && "Đoán giá trị chính xác"}
+                        </p>
+                      </div>
+                    )}
+                  </motion.div>
+                </div>
               </div>
 
-              {/* Right panel - Image / Placeholder */}
-              <div className="w-full lg:w-7/12 flex items-center justify-center">
-                <motion.div
-                  className="w-full aspect-video rounded-3xl flex items-center justify-center overflow-hidden"
-                  style={{
-                    backgroundColor: "rgba(0,0,0,0.15)",
-                    border: "3px solid var(--color-ink)",
-                    boxShadow: "var(--shadow-chunky)",
-                  }}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.15, duration: 0.3 }}
-                >
-                  {question.imageUrl ? (
-                    <img
-                      src={question.imageUrl}
-                      alt={question.prompt}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="text-center p-8">
-                      <span className="text-6xl mb-4 block">
-                        {question.type === "buttons" && "🎯"}
-                        {question.type === "checkboxes" && "☑️"}
-                        {question.type === "reorder" && "🔢"}
-                        {question.type === "range" && "📏"}
-                      </span>
-                      <p
-                        className="text-text-soft-cream/50 text-sm"
-                        style={{ fontFamily: "var(--font-display)" }}
-                      >
-                        Câu {questionIndex + 1} / {totalQuestions}
-                      </p>
-                      <p className="text-text-soft-cream/30 text-xs mt-1">
-                        {question.type === "buttons" && "Chọn 1 đáp án đúng"}
-                        {question.type === "checkboxes" && "Chọn tất cả đáp án đúng"}
-                        {question.type === "reorder" && "Kéo thả sắp xếp đúng thứ tự"}
-                        {question.type === "range" && "Đoán giá trị chính xác"}
-                      </p>
-                    </div>
-                  )}
-                </motion.div>
-              </div>
+              {/* Player strip - show who answered */}
+              {roomSnapshot && roomSnapshot.players.length > 1 && (
+                <PlayerStrip
+                  players={roomSnapshot.players}
+                  lockedPlayerIds={roomSnapshot.questionState?.lockedPlayers || []}
+                  currentPlayerId={currentPlayerId || undefined}
+                />
+              )}
             </motion.div>
           )}
 

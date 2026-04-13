@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { roomStore } from "@/lib/adapters/room-store";
+import { getRoom, saveRoom } from "@/lib/adapters/room-store";
 import type { AnswerSubmission } from "@/lib/types";
 
 // POST /api/rooms/[code]/answer  → submit answer
@@ -17,7 +17,7 @@ export async function POST(
       return NextResponse.json({ error: "Missing answer" }, { status: 400 });
     }
 
-    const snapshot = roomStore.get(roomCode);
+    const snapshot = await getRoom(roomCode);
     if (!snapshot) {
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
     }
@@ -56,7 +56,7 @@ export async function POST(
     }
 
     snapshot.updatedAt = Date.now();
-    roomStore.set(roomCode, snapshot);
+    await saveRoom(snapshot);
 
     return NextResponse.json({ snapshot });
   } catch {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { roomStore } from "@/lib/adapters/room-store";
+import { getRoom, saveRoom } from "@/lib/adapters/room-store";
 import type { PlayerState } from "@/lib/types";
 
 function generatePlayerId(): string {
@@ -17,7 +17,7 @@ export async function GET(
 ) {
   const { code } = await params;
   const roomCode = code.toUpperCase();
-  const snapshot = roomStore.get(roomCode);
+  const snapshot = await getRoom(roomCode);
 
   if (!snapshot) {
     return NextResponse.json({ error: "Room not found" }, { status: 404 });
@@ -41,7 +41,7 @@ export async function POST(
       return NextResponse.json({ error: "Missing displayName" }, { status: 400 });
     }
 
-    const snapshot = roomStore.get(roomCode);
+    const snapshot = await getRoom(roomCode);
     if (!snapshot) {
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
     }
@@ -65,7 +65,7 @@ export async function POST(
 
     snapshot.players.push(newPlayer);
     snapshot.updatedAt = Date.now();
-    roomStore.set(roomCode, snapshot);
+    await saveRoom(snapshot);
 
     return NextResponse.json({ snapshot, playerId });
   } catch {
@@ -89,7 +89,7 @@ export async function PUT(
     }
 
     snapshot.updatedAt = Date.now();
-    roomStore.set(roomCode, snapshot);
+    await saveRoom(snapshot);
 
     return NextResponse.json({ snapshot });
   } catch {

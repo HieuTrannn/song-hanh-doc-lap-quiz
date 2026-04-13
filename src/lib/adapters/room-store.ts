@@ -1,19 +1,35 @@
 /**
- * Server-side in-memory room store.
- * This module is ONLY imported by API routes (runs on the server).
- * It uses a global Map so that data survives across requests
- * within the same Next.js dev/production process.
+ * Server-side room store backed by Upstash Redis.
+ * 
+ * This replaces the in-memory Map so that room data persists
+ * across Vercel serverless function instances.
+ * 
+ * Each room is stored as a JSON string with key "room:{code}".
+ * Rooms auto-expire after 3 hours to prevent stale data.
  */
 
+import { Redis } from "@upstash/redis";
 import type { RoomSnapshot } from "@/lib/types";
 
-// Attach to globalThis so the store survives HMR in dev
-const globalForRooms = globalThis as unknown as {
-  __roomStore?: Map<string, RoomSnapshot>;
-};
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
 
-if (!globalForRooms.__roomStore) {
-  globalForRooms.__roomStore = new Map<string, RoomSnapshot>();
+const ROOM_PREFIX = "room:";
+const ROOM_TTL_SECONDS = 3 * 60 * 60; // 3 hours
+
+export async function getRoom(roomCode: string): Promise<RoomSnapshot | null> {
+  const data = await redis.get<RoomSnapshot>(`${ROOM_PREFIX}${roomCode}`);
+  return data ?? null;
 }
 
-export const roomStore: Map<string, RoomSnapshot> = globalForRooms.__roomStore;
+export async function saveRoom(snapshot: RoomSnapshot): Promise<void> {
+  await redis.set(`${ROOM_PREFIX}${snapshot.roomCode}`, snapshot, {
+    ex: ROOM_TTL_SECONDS,
+  });
+}
+
+export async function deleteRoom(roomCode: string): Promise<void> {
+  await redis.del(`${ROOM_PREFIX}${roomCode}`);
+}

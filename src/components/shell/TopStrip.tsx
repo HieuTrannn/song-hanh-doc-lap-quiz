@@ -39,7 +39,7 @@ export function TopStrip({
 
         {roomCode && (
           <span className="text-text-cream font-bold text-sm">
-            PIN {roomCode.slice(0, 3)} {roomCode.slice(3)}
+            PIN {roomCode}
           </span>
         )}
 

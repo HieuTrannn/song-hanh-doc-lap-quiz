@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { roomStore } from "@/lib/adapters/room-store";
+import { saveRoom } from "@/lib/adapters/room-store";
 import type { RoomSnapshot, PlayerState } from "@/lib/types";
 
 function generateRoomCode(): string {
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       updatedAt: Date.now(),
     };
 
-    roomStore.set(roomCode, snapshot);
+    await saveRoom(snapshot);
 
     return NextResponse.json({ snapshot, playerId });
   } catch {

@@ -34,6 +34,7 @@ export default function LobbyPage() {
 
   const [mounted, setMounted] = useState(false);
   const [joinUrl, setJoinUrl] = useState("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -120,6 +121,38 @@ export default function LobbyPage() {
                 </p>
               </div>
             </div>
+
+            {/* Copy link */}
+            {joinUrl && (
+              <div className="mt-4 flex items-center justify-center gap-2">
+                <div
+                  className="flex items-center gap-2 px-3 py-2 rounded-full text-xs"
+                  style={{
+                    backgroundColor: "rgba(0,0,0,0.25)",
+                    border: "2px solid rgba(255,255,255,0.15)",
+                  }}
+                >
+                  <span className="text-text-soft-cream truncate max-w-[220px] sm:max-w-[300px]">
+                    {joinUrl}
+                  </span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(joinUrl);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                    className="px-3 py-1 rounded-full font-bold text-xs transition-all whitespace-nowrap"
+                    style={{
+                      backgroundColor: copied ? "#10B981" : "var(--color-accent-lime)",
+                      color: copied ? "#fff" : "var(--color-ink)",
+                      fontFamily: "var(--font-display)",
+                    }}
+                  >
+                    {copied ? "✓ Đã copy!" : "📋 Copy"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Player count */}
