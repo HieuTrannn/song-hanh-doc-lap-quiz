@@ -4,13 +4,11 @@ import { create } from "zustand";
 import type {
   RoomSnapshot,
   QuizQuestion,
-  PlayerState,
   LeaderboardEntry,
   AnswerSubmission,
   QuestionRuntimeState,
-  RoomStatus,
 } from "@/lib/types";
-import { getLocalRoomAdapter } from "@/lib/adapters/local-room-adapter";
+import { getServerRoomAdapter } from "@/lib/adapters/server-room-adapter";
 import { scoreAnswer } from "@/lib/game/scoring";
 import { hcm202Quiz } from "@/data/quizzes/hcm202";
 
@@ -107,13 +105,15 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   // ─── Create room ───
   createRoom: async (hostName: string) => {
-    const adapter = getLocalRoomAdapter();
-    const snapshot = await adapter.createRoom({
+    const adapter = getServerRoomAdapter();
+    const { snapshot, playerId } = await adapter.createRoom({
       hostName,
       quizSetId: hcm202Quiz.id,
     });
 
-    const playerId = sessionStorage.getItem("quiz_clone.currentPlayerId");
+    // Store player ID in sessionStorage for page reloads
+    sessionStorage.setItem("quiz_clone.currentPlayerId", playerId);
+    sessionStorage.setItem("quiz_clone.currentRoomCode", snapshot.roomCode);
 
     set({
       roomSnapshot: snapshot,
@@ -127,9 +127,12 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   // ─── Join room ───
   joinRoom: async (roomCode: string, displayName: string) => {
-    const adapter = getLocalRoomAdapter();
-    const snapshot = await adapter.joinRoom(roomCode, { displayName });
-    const playerId = sessionStorage.getItem("quiz_clone.currentPlayerId");
+    const adapter = getServerRoomAdapter();
+    const { snapshot, playerId } = await adapter.joinRoom(roomCode, { displayName });
+
+    // Store player ID in sessionStorage for page reloads
+    sessionStorage.setItem("quiz_clone.currentPlayerId", playerId);
+    sessionStorage.setItem("quiz_clone.currentRoomCode", roomCode);
 
     set({
       roomSnapshot: snapshot,
@@ -145,7 +148,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     const { unsubscribe: oldUnsub } = get();
     if (oldUnsub) oldUnsub();
 
-    const adapter = getLocalRoomAdapter();
+    const adapter = getServerRoomAdapter();
     const unsub = adapter.subscribe(roomCode, (snapshot) => {
       get().syncSnapshot(snapshot);
     });
@@ -153,7 +156,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({ unsubscribe: unsub });
   },
 
-  // ─── Sync snapshot from other tabs ───
+  // ─── Sync snapshot from server polling ───
   syncSnapshot: (snapshot: RoomSnapshot) => {
     const { phase, currentPlayerId } = get();
     
@@ -163,18 +166,20 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (snapshot.status === "lobby" && phase !== "lobby") {
       set({ phase: "lobby" });
     }
+    if (snapshot.status === "countdown" && phase !== "countdown") {
+      set({ phase: "countdown" });
+    }
     if (snapshot.status === "question") {
       const question = get().getCurrentQuestion();
-      if (question && phase !== "question_active" && phase !== "question_locked") {
+      if (question && phase !== "question_active" && phase !== "question_locked" && phase !== "result_reveal") {
         set({
           currentQuestion: question,
           phase: "question_active",
           selectedAnswer: null,
           answerSubmitted: false,
         });
-        // Start timer if not host (host manages timer)
-        const isHost = snapshot.hostPlayerId === currentPlayerId;
-        if (!isHost && snapshot.questionState) {
+        // Start timer for all players based on server timestamps
+        if (snapshot.questionState) {
           const totalMs = snapshot.questionState.endsAt - snapshot.questionState.startedAt;
           const leftMs = Math.max(0, snapshot.questionState.endsAt - Date.now());
           set({ totalTimeMs: totalMs, timeLeftMs: leftMs });
@@ -183,12 +188,16 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
       // Check if this player already answered
       if (snapshot.questionState?.lockedPlayers.includes(currentPlayerId || "")) {
-        set({ answerSubmitted: true, phase: "question_locked" });
+        if (phase === "question_active") {
+          set({ answerSubmitted: true, phase: "question_locked" });
+        }
       }
     }
     if (snapshot.status === "result") {
-      get().stopTimer();
-      set({ phase: "result_reveal" });
+      if (phase !== "result_reveal" && phase !== "leaderboard_transition") {
+        get().stopTimer();
+        set({ phase: "result_reveal" });
+      }
     }
     if (snapshot.status === "finished") {
       get().stopTimer();
@@ -205,7 +214,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (!roomSnapshot) return;
     if (roomSnapshot.hostPlayerId !== currentPlayerId) return;
 
-    const adapter = getLocalRoomAdapter();
+    const adapter = getServerRoomAdapter();
 
     // Countdown phase
     set({ phase: "countdown" });
@@ -225,7 +234,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (!roomSnapshot) return;
     if (roomSnapshot.hostPlayerId !== currentPlayerId) return;
 
-    const adapter = getLocalRoomAdapter();
+    const adapter = getServerRoomAdapter();
     const questions = hcm202Quiz.questions;
     const idx = roomSnapshot.currentQuestionIndex;
 
@@ -316,7 +325,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       isCorrect,
     };
 
-    const adapter = getLocalRoomAdapter();
+    const adapter = getServerRoomAdapter();
     const updatedSnapshot = await adapter.submitAnswer(roomSnapshot.roomCode, submission);
 
     set({
@@ -342,7 +351,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   updateTimer: () => {
-    const { roomSnapshot, timeLeftMs, currentPlayerId } = get();
+    const { roomSnapshot, currentPlayerId } = get();
     if (!roomSnapshot?.questionState) return;
 
     const newTimeLeft = Math.max(0, roomSnapshot.questionState.endsAt - Date.now());
@@ -374,7 +383,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (!roomSnapshot) return;
     if (roomSnapshot.hostPlayerId !== currentPlayerId) return;
 
-    const adapter = getLocalRoomAdapter();
+    const adapter = getServerRoomAdapter();
     roomSnapshot.status = "result";
     roomSnapshot.leaderboard = get().calculateLeaderboard();
     await adapter.saveRoom(roomSnapshot);
@@ -405,7 +414,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (!snap) return;
 
       snap.currentQuestionIndex += 1;
-      const adapter = getLocalRoomAdapter();
+      const adapter = getServerRoomAdapter();
       
       if (snap.currentQuestionIndex >= hcm202Quiz.questions.length) {
         get().goToFinalResults();
@@ -419,10 +428,10 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   // ─── Final results ───
   goToFinalResults: async () => {
-    const { roomSnapshot, currentPlayerId } = get();
+    const { roomSnapshot } = get();
     if (!roomSnapshot) return;
 
-    const adapter = getLocalRoomAdapter();
+    const adapter = getServerRoomAdapter();
     roomSnapshot.status = "finished";
     roomSnapshot.leaderboard = get().calculateLeaderboard();
     await adapter.saveRoom(roomSnapshot);
