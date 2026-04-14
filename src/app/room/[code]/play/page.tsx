@@ -32,7 +32,7 @@ export default function PlayPage() {
     submitAnswer,
     subscribeToRoom,
     startTimer,
-    nextQuestion,
+    skipQuestion,
     calculateLeaderboard,
     getCurrentQuestion,
   } = useGameStore();
@@ -58,7 +58,8 @@ export default function PlayPage() {
             const q = hcm202Quiz.questions[snap.currentQuestionIndex];
             if (q && snap.status === "question") {
               const totalMs = snap.questionState!.endsAt - snap.questionState!.startedAt;
-              const leftMs = Math.max(0, snap.questionState!.endsAt - Date.now());
+              // Clamp leftMs to [0, totalMs] to handle clock skew between devices
+              const leftMs = Math.min(totalMs, Math.max(0, snap.questionState!.endsAt - Date.now()));
               useGameStore.setState({
                 currentQuestion: q,
                 phase: "question_active",
@@ -100,9 +101,15 @@ export default function PlayPage() {
   // Auto-skip to result when ALL players have answered
   useEffect(() => {
     const hostCheck = roomSnapshot?.hostPlayerId === currentPlayerId;
+    // Verify the questionState actually belongs to the CURRENT question
+    // to prevent stale polling data from triggering a false auto-skip
+    const questionStateMatchesCurrent =
+      roomSnapshot?.questionState?.questionId === currentQuestion?.id;
+
     if (
       (phase === "question_active" || phase === "question_locked") &&
       hostCheck &&
+      questionStateMatchesCurrent &&
       roomSnapshot?.questionState &&
       roomSnapshot.players.length > 0 &&
       roomSnapshot.questionState.lockedPlayers.length >= roomSnapshot.players.length
@@ -118,7 +125,9 @@ export default function PlayPage() {
     roomSnapshot?.hostPlayerId,
     currentPlayerId,
     roomSnapshot?.questionState?.lockedPlayers.length,
+    roomSnapshot?.questionState?.questionId,
     roomSnapshot?.players.length,
+    currentQuestion?.id,
   ]);
 
   if (!mounted) return null;
@@ -135,7 +144,7 @@ export default function PlayPage() {
 
   const handleSkip = () => {
     if (isHost) {
-      useGameStore.getState().nextQuestion();
+      skipQuestion();
     }
   };
 

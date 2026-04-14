@@ -9,7 +9,8 @@ export function calculateBaseScore(
   maxScore: number = 1000,
   minScore: number = 0
 ): number {
-  const ratio = Math.max(0, timeLeftMs / totalTimeMs);
+  // Clamp ratio to [0, 1] to prevent score exceeding maxScore (e.g. from clock skew)
+  const ratio = Math.min(1, Math.max(0, timeLeftMs / totalTimeMs));
   return Math.max(minScore, Math.floor(maxScore * ratio));
 }
 
@@ -86,7 +87,7 @@ export function scoreRange(
   const rangeSpan = rangeMax - rangeMin;
   const normalizedDistance = Math.min(distance / rangeSpan, 1);
   const accuracyFactor = 1 - normalizedDistance;
-  const timeFactor = Math.max(0, timeLeftMs / totalTimeMs);
+  const timeFactor = Math.min(1, Math.max(0, timeLeftMs / totalTimeMs));
   const score = Math.round(maxScore * timeFactor * accuracyFactor);
   const isCorrect = distance === 0;
   return { score, isCorrect, distance };

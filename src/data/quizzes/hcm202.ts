@@ -528,7 +528,7 @@ export const hcm202Quiz: QuizSet = {
     {
       id: "rng-5",
       type: "range",
-      prompt: "Từ năm 1930 đến năm 1945 là bao nhiêu năm?",
+      prompt: "Theo em, từ khi Đảng Cộng sản Việt Nam ra đời đến khi Chủ tịch Hồ Chí Minh đọc Tuyên ngôn Độc lập là bao nhiêu năm ?",
       durationSec: 15,
       maxScore: 1000,
       range: {

@@ -57,6 +57,7 @@ interface GameState {
   joinRoom: (roomCode: string, displayName: string) => Promise<void>;
   startGame: () => Promise<void>;
   nextQuestion: () => Promise<void>;
+  skipQuestion: () => Promise<void>;
   submitAnswer: (payload: unknown) => Promise<void>;
   setPhase: (phase: GamePhase) => void;
   updateTimer: () => void;
@@ -158,8 +159,14 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   // ─── Sync snapshot from server polling ───
   syncSnapshot: (snapshot: RoomSnapshot) => {
-    const { phase, currentPlayerId } = get();
+    const { phase, currentPlayerId, roomSnapshot: localSnapshot } = get();
     
+    // Skip stale snapshots: if local state is newer, don't overwrite
+    if (localSnapshot && localSnapshot.updatedAt && snapshot.updatedAt &&
+        localSnapshot.updatedAt > snapshot.updatedAt) {
+      return;
+    }
+
     set({ roomSnapshot: snapshot });
 
     // Update phase based on room status
@@ -188,7 +195,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         // Start timer for all players based on server timestamps
         if (snapshot.questionState) {
           const totalMs = snapshot.questionState.endsAt - snapshot.questionState.startedAt;
-          const leftMs = Math.max(0, snapshot.questionState.endsAt - Date.now());
+          // Clamp leftMs to [0, totalMs] to handle clock skew between devices
+          const leftMs = Math.min(totalMs, Math.max(0, snapshot.questionState.endsAt - Date.now()));
           set({ totalTimeMs: totalMs, timeLeftMs: leftMs });
           get().startTimer();
         }
@@ -226,6 +234,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     // Countdown phase
     set({ phase: "countdown" });
     roomSnapshot.status = "countdown";
+    roomSnapshot.updatedAt = Date.now();
     await adapter.saveRoom(roomSnapshot);
 
     // Wait 3 seconds for countdown
@@ -249,6 +258,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       // Game over
       roomSnapshot.status = "finished";
       roomSnapshot.leaderboard = get().calculateLeaderboard();
+      roomSnapshot.updatedAt = Date.now();
       await adapter.saveRoom(roomSnapshot);
       set({
         phase: "final_results",
@@ -272,6 +282,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     roomSnapshot.status = "question";
     roomSnapshot.questionState = questionState;
+    roomSnapshot.updatedAt = Date.now();
     await adapter.saveRoom(roomSnapshot);
 
     set({
@@ -287,6 +298,31 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
 
     get().startTimer();
+  },
+
+  // ─── Skip question (host only) ───
+  skipQuestion: async () => {
+    const { roomSnapshot, currentPlayerId, phase } = get();
+    if (!roomSnapshot) return;
+    if (roomSnapshot.hostPlayerId !== currentPlayerId) return;
+    // Prevent skipping during result/leaderboard transitions
+    if (phase === "result_reveal" || phase === "leaderboard_transition" || phase === "final_results") return;
+
+    get().stopTimer();
+
+    const adapter = getServerRoomAdapter();
+    roomSnapshot.currentQuestionIndex += 1;
+
+    if (roomSnapshot.currentQuestionIndex >= hcm202Quiz.questions.length) {
+      get().goToFinalResults();
+    } else {
+      // Reset question state before advancing
+      roomSnapshot.questionState = null as unknown as QuestionRuntimeState;
+      roomSnapshot.updatedAt = Date.now();
+      await adapter.saveRoom(roomSnapshot);
+      set({ roomSnapshot: { ...roomSnapshot } });
+      await get().nextQuestion();
+    }
   },
 
   // ─── Submit answer ───
@@ -358,10 +394,11 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   updateTimer: () => {
-    const { roomSnapshot, currentPlayerId } = get();
+    const { roomSnapshot, currentPlayerId, totalTimeMs } = get();
     if (!roomSnapshot?.questionState) return;
 
-    const newTimeLeft = Math.max(0, roomSnapshot.questionState.endsAt - Date.now());
+    // Clamp to [0, totalTimeMs] to handle clock skew between devices
+    const newTimeLeft = Math.min(totalTimeMs, Math.max(0, roomSnapshot.questionState.endsAt - Date.now()));
     set({ timeLeftMs: newTimeLeft });
 
     // Time's up
@@ -386,13 +423,16 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   // ─── Show result (host only) ───
   showResult: async () => {
-    const { roomSnapshot, currentPlayerId } = get();
+    const { roomSnapshot, currentPlayerId, phase } = get();
     if (!roomSnapshot) return;
     if (roomSnapshot.hostPlayerId !== currentPlayerId) return;
+    // Guard: prevent calling showResult if already in result or leaderboard phase
+    if (phase === "result_reveal" || phase === "leaderboard_transition" || phase === "final_results") return;
 
     const adapter = getServerRoomAdapter();
     roomSnapshot.status = "result";
     roomSnapshot.leaderboard = get().calculateLeaderboard();
+    roomSnapshot.updatedAt = Date.now();
     await adapter.saveRoom(roomSnapshot);
 
     set({
@@ -409,18 +449,23 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   // ─── Show leaderboard transition ───
   showLeaderboard: async () => {
-    const { roomSnapshot, currentPlayerId } = get();
+    const { roomSnapshot, currentPlayerId, phase } = get();
     if (!roomSnapshot) return;
     if (roomSnapshot.hostPlayerId !== currentPlayerId) return;
+    // Guard: only transition from result_reveal to leaderboard
+    if (phase !== "result_reveal") return;
 
     set({ phase: "leaderboard_transition" });
 
     // After 3 seconds, go to next question
     setTimeout(async () => {
-      const { roomSnapshot: snap } = get();
+      const { roomSnapshot: snap, phase: currentPhase } = get();
       if (!snap) return;
+      // Guard: only advance if we're still in leaderboard phase
+      if (currentPhase !== "leaderboard_transition") return;
 
       snap.currentQuestionIndex += 1;
+      snap.updatedAt = Date.now();
       const adapter = getServerRoomAdapter();
       
       if (snap.currentQuestionIndex >= hcm202Quiz.questions.length) {
@@ -441,6 +486,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     const adapter = getServerRoomAdapter();
     roomSnapshot.status = "finished";
     roomSnapshot.leaderboard = get().calculateLeaderboard();
+    roomSnapshot.updatedAt = Date.now();
     await adapter.saveRoom(roomSnapshot);
 
     set({
