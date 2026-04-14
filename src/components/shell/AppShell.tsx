@@ -120,12 +120,12 @@ export function AppShell({
   showDecorations = true,
 }: AppShellProps) {
   const theme = SLIDE_THEMES[themeIndex % SLIDE_THEMES.length];
-  const backgroundColor = bg || theme.bg;
+  const overlayColor = bg || theme.bg;
 
   return (
     <div
       className="relative min-h-screen flex flex-col"
-      style={{ backgroundColor }}
+      style={{ backgroundColor: `${overlayColor}cc` }}
     >
       {showDecorations && (
         <DecorativeShapes themeIndex={themeIndex} />
