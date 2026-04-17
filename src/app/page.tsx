@@ -49,10 +49,10 @@ export default function HomePage() {
             className="text-5xl md:text-7xl font-bold tracking-tight flex flex-wrap gap-x-3 gap-y-1 justify-center items-center"
             style={{ fontFamily: "var(--font-display)" }}
           >
-            <span className="text-accent-pink">Song</span>
-            <span className="text-accent-yellow">Hành</span>
-            <span className="text-accent-lime">Độc</span>
-            <span className="text-accent-coral">Lập</span>
+            <span className="text-accent-pink">Đường</span>
+            <span className="text-accent-yellow">Tới</span>
+            <span className="text-accent-lime">Vững</span>
+            <span className="text-accent-coral">Bền</span>
           </h1>
           <p
             className="text-text-soft-cream text-lg md:text-xl mt-4"
